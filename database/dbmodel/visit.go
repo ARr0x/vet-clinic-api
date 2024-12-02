@@ -1,17 +1,36 @@
 package dbmodel
 
 import (
+	"errors"
+	"net/http"
+	"time"
+
 	"gorm.io/gorm"
 )
 
 // Modèle pour une consultation
+
 type Visit struct {
-	ID           uint   `gorm:"primaryKey"`
-	Date         string `gorm:"not null"`
-	Reason       string `gorm:"not null"`
-	Veterinarian string `gorm:"not null"`
-	CatID        uint   `gorm:"not null"` // Relation avec Cat
-	Cat          Cat    `gorm:"foreignKey:CatID"`
+	ID           uint        `gorm:"primaryKey" json:"id"`
+	CatID        uint        `json:"cat_id"`
+	Date         time.Time   `json:"date"`
+	Reason       string      `json:"reason"`
+	Veterinarian string      `json:"veterinarian"`
+	Treatments   []Treatment `gorm:"foreignKey:VisitID" json:"treatments,omitempty"`
+}
+
+// Bind validates and processes incoming requests for the Visit model.
+func (v *Visit) Bind(r *http.Request) error {
+	if v.CatID == 0 {
+		return errors.New("cat_id is required")
+	}
+	if v.Date.IsZero() {
+		return errors.New("date is required")
+	}
+	if v.Reason == "" {
+		return errors.New("reason is required")
+	}
+	return nil
 }
 
 // Interface du repository pour Visit

@@ -1,16 +1,36 @@
 package dbmodel
 
 import (
+	"errors"
+	"net/http"
+
 	"gorm.io/gorm"
 )
 
 // Modèle pour un traitement
 type Treatment struct {
-	ID      uint   `gorm:"primaryKey"`
-	Name    string `gorm:"not null"`
-	Dosage  string `gorm:"not null"`
-	VisitID uint   `gorm:"not null"` // Relation avec Visit
-	Visit   Visit  `gorm:"foreignKey:VisitID"`
+	ID        uint   `gorm:"primaryKey" json:"id"`
+	VisitID   uint   `json:"visit_id"`
+	Name      string `json:"name"`
+	Dosage    string `json:"dosage"`
+	Frequency string `json:"frequency"`
+}
+
+// Bind validates and processes incoming requests for the Treatment model.
+func (t *Treatment) Bind(r *http.Request) error {
+	if t.VisitID == 0 {
+		return errors.New("visit_id is required")
+	}
+	if t.Name == "" {
+		return errors.New("name is required")
+	}
+	if t.Dosage == "" {
+		return errors.New("dosage is required")
+	}
+	if t.Frequency == "" {
+		return errors.New("frequency is required")
+	}
+	return nil
 }
 
 // Interface du repository pour Treatment

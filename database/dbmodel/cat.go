@@ -1,6 +1,9 @@
 package dbmodel
 
 import (
+	"errors"
+	"net/http"
+
 	"gorm.io/gorm"
 )
 
@@ -26,6 +29,19 @@ type CatRepository interface {
 // Implémentation du repository
 type catRepository struct {
 	db *gorm.DB
+}
+
+func (v *Visit) Bind(r *http.Request) error {
+	if v.CatID == 0 {
+		return errors.New("cat_id is required")
+	}
+	if v.Date.IsZero() {
+		return errors.New("date is required")
+	}
+	if v.Reason == "" {
+		return errors.New("reason is required")
+	}
+	return nil
 }
 
 func NewCatRepository(db *gorm.DB) CatRepository {
