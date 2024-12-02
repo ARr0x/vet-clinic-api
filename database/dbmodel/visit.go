@@ -28,3 +28,31 @@ type VisitRepository interface {
 type visitRepository struct {
 	db *gorm.DB
 }
+
+func NewTreatmentRepository(db *gorm.DB) TreatmentRepository {
+	return &treatmentRepository{db: db}
+}
+
+func (r *treatmentRepository) Create(treatment *Treatment) error {
+	return r.db.Create(treatment).Error
+}
+
+func (r *treatmentRepository) FindByID(id uint) (*Treatment, error) {
+	var treatment Treatment
+	err := r.db.Preload("Visit").First(&treatment, id).Error
+	return &treatment, err
+}
+
+func (r *treatmentRepository) FindByVisitID(visitID uint) ([]Treatment, error) {
+	var treatments []Treatment
+	err := r.db.Where("visit_id = ?", visitID).Find(&treatments).Error
+	return treatments, err
+}
+
+func (r *treatmentRepository) Update(treatment *Treatment) error {
+	return r.db.Save(treatment).Error
+}
+
+func (r *treatmentRepository) Delete(id uint) error {
+	return r.db.Delete(&Treatment{}, id).Error
+}
