@@ -16,14 +16,11 @@ import (
 )
 
 func main() {
-	// Charger les variables d'environnement
-	dsn := os.Getenv("DATABASE_DSN")
-	if dsn == "" {
-		log.Fatal("DATABASE_DSN non défini")
+	// Initialiser la configuration sans le paramètre dsn
+	cfg, err := config.New()
+	if err != nil {
+		log.Fatalf("Erreur lors de l'initialisation de la configuration : %v", err)
 	}
-
-	// Initialiser la configuration
-	cfg := config.New(dsn)
 
 	// Configurer le routeur
 	r := chi.NewRouter()
