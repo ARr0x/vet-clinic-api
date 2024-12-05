@@ -1,6 +1,9 @@
 package config
 
 import (
+	"log"
+	"os"
+
 	"vet-clinic-api/database"
 	"vet-clinic-api/database/dbmodel"
 
@@ -8,28 +11,29 @@ import (
 	"gorm.io/gorm"
 )
 
+// Config centralise la configuration de l'application
 type Config struct {
-	// Connexion aux repositories
+	DB                  *gorm.DB
 	CatRepository       dbmodel.CatRepository
-	TreatmentRepository dbmodel.TreatmentRepository
 	VisitRepository     dbmodel.VisitRepository
+	TreatmentRepository dbmodel.TreatmentRepository
 }
 
-func New() (*Config, error) {
-	config := Config{}
-
-	// Initialisation de la connexion à la base de données
-	databaseSession, err := gorm.Open(sqlite.Open("vet-clinic-api.db"), &gorm.Config{})
+// New initialise la configuration principale
+func New() *Config {
+	db, err := gorm.Open(sqlite.Open("vet_clinic.db"), &gorm.Config{})
 	if err != nil {
-		return &config, err
+		log.Fatalf("Failed to connect to the database: %v", err)
 	}
 
-	database.Migrate(databaseSession)
+	if os.Getenv("MIGRATE") == "true" {
+		database.Migrate(db)
+	}
 
-	// Initialisation des repositories
-	config.CatRepository = dbmodel.NewCatRepository(databaseSession)
-	config.TreatmentRepository = dbmodel.NewTreatmentRepository(databaseSession)
-	config.VisitRepository = dbmodel.NewVisitRepository(databaseSession)
-
-	return &config, nil
+	return &Config{
+		DB:                  db,
+		CatRepository:       dbmodel.NewCatRepository(db),
+		VisitRepository:     dbmodel.NewVisitRepository(db),
+		TreatmentRepository: dbmodel.NewTreatmentRepository(db),
+	}
 }

@@ -1,6 +1,7 @@
 package treatment
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -14,10 +15,16 @@ import (
 func CreateTreatment(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var treatment dbmodel.Treatment
-		if err := render.Bind(r, &treatment); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&treatment); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
+		if err := treatment.Bind(r); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		if err := cfg.TreatmentRepository.Create(&treatment); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -26,20 +33,54 @@ func CreateTreatment(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
-func GetTreatmentsByVisitID(cfg *config.Config) http.HandlerFunc {
+func GetAllTreatments(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		visitID, err := strconv.Atoi(chi.URLParam(r, "visitID"))
-		if err != nil {
-			http.Error(w, "Invalid Visit ID", http.StatusBadRequest)
-			return
-		}
-
-		treatments, err := cfg.TreatmentRepository.FindByVisitID(uint(visitID))
+		treatments, err := cfg.TreatmentRepository.FindAll()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		render.JSON(w, r, treatments)
+	}
+}
+
+func GetTreatmentByID(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil {
+			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			return
+		}
+
+		treatment, err := cfg.TreatmentRepository.FindByID(uint(id))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		render.JSON(w, r, treatment)
+	}
+}
+
+func UpdateTreatment(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil {
+			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			return
+		}
+
+		var treatment dbmodel.Treatment
+		if err := json.NewDecoder(r.Body).Decode(&treatment); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		treatment.ID = uint(id)
+		if err := cfg.TreatmentRepository.Update(&treatment); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		render.JSON(w, r, treatment)
 	}
 }
 

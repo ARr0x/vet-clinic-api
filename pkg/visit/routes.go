@@ -8,12 +8,10 @@ import (
 
 func Routes(cfg *config.Config) chi.Router {
 	r := chi.NewRouter()
-
 	r.Post("/", CreateVisit(cfg))
+	r.Get("/", GetAllVisits(cfg))
 	r.Get("/{id}", GetVisitByID(cfg))
-	r.Get("/cat/{catID}", GetVisitsByCatID(cfg))
 	r.Put("/{id}", UpdateVisit(cfg))
 	r.Delete("/{id}", DeleteVisit(cfg))
-
 	return r
 }

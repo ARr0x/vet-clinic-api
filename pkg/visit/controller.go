@@ -1,6 +1,7 @@
 package visit
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -14,15 +15,32 @@ import (
 func CreateVisit(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var visit dbmodel.Visit
-		if err := render.Bind(r, &visit); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&visit); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
+		if err := visit.Bind(r); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		if err := cfg.VisitRepository.Create(&visit); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		render.JSON(w, r, visit)
+	}
+}
+
+func GetAllVisits(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		visits, err := cfg.VisitRepository.FindAll()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		render.JSON(w, r, visits)
 	}
 }
 
@@ -36,27 +54,10 @@ func GetVisitByID(cfg *config.Config) http.HandlerFunc {
 
 		visit, err := cfg.VisitRepository.FindByID(uint(id))
 		if err != nil {
-			http.Error(w, "Visit not found", http.StatusNotFound)
+			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
 		render.JSON(w, r, visit)
-	}
-}
-
-func GetVisitsByCatID(cfg *config.Config) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		catID, err := strconv.Atoi(chi.URLParam(r, "catID"))
-		if err != nil {
-			http.Error(w, "Invalid Cat ID", http.StatusBadRequest)
-			return
-		}
-
-		visits, err := cfg.VisitRepository.FindByCatID(uint(catID))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		render.JSON(w, r, visits)
 	}
 }
 
@@ -69,12 +70,12 @@ func UpdateVisit(cfg *config.Config) http.HandlerFunc {
 		}
 
 		var visit dbmodel.Visit
-		if err := render.Bind(r, &visit); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&visit); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		visit.ID = uint(id)
 
+		visit.ID = uint(id)
 		if err := cfg.VisitRepository.Update(&visit); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

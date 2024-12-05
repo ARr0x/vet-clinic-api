@@ -1,20 +1,40 @@
 package dbmodel
 
 import (
+	"errors"
+	"net/http"
+	"time"
+
 	"gorm.io/gorm"
 )
 
-// Modèle pour un chat
 type Cat struct {
-	ID        uint   `gorm:"primaryKey"`
-	Name      string `gorm:"not null"`
-	Age       int    `gorm:"not null"`
-	Breed     string `gorm:"not null"`
-	Weight    float64
-	CreatedAt string
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	Name      string    `gorm:"not null" json:"name"`
+	Age       int       `gorm:"not null" json:"age"`
+	Breed     string    `gorm:"not null" json:"breed"`
+	Weight    float64   `json:"weight"`
+	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+	Visits    []Visit   `gorm:"foreignKey:CatID" json:"visits,omitempty"`
 }
 
-// Interface du repository pour Cat
+func (c *Cat) Bind(r *http.Request) error {
+	if c.Name == "" {
+		return errors.New("name is required")
+	}
+	if c.Age < 0 {
+		return errors.New("age must be non-negative")
+	}
+	if c.Breed == "" {
+		return errors.New("breed is required")
+	}
+	if c.Weight < 0 {
+		return errors.New("weight must be non-negative")
+	}
+	return nil
+}
+
 type CatRepository interface {
 	Create(cat *Cat) error
 	FindByID(id uint) (*Cat, error)
@@ -23,7 +43,6 @@ type CatRepository interface {
 	Delete(id uint) error
 }
 
-// Implémentation du repository
 type catRepository struct {
 	db *gorm.DB
 }
@@ -38,13 +57,13 @@ func (r *catRepository) Create(cat *Cat) error {
 
 func (r *catRepository) FindByID(id uint) (*Cat, error) {
 	var cat Cat
-	err := r.db.First(&cat, id).Error
+	err := r.db.Preload("Visits").First(&cat, id).Error
 	return &cat, err
 }
 
 func (r *catRepository) FindAll() ([]Cat, error) {
 	var cats []Cat
-	err := r.db.Find(&cats).Error
+	err := r.db.Preload("Visits").Find(&cats).Error
 	return cats, err
 }
 

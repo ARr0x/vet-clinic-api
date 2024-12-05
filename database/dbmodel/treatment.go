@@ -3,80 +3,61 @@ package dbmodel
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"gorm.io/gorm"
 )
 
-// Modèle pour un traitement
 type Treatment struct {
-	ID        uint   `gorm:"primaryKey" json:"id"`
-	VisitID   uint   `json:"visit_id"`
-	Name      string `json:"name"`
-	Dosage    string `json:"dosage"`
-	Frequency string `json:"frequency"`
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	VisitID     uint      `gorm:"not null" json:"visit_id"`
+	Description string    `gorm:"not null" json:"description"`
+	CreatedAt   time.Time `gorm:"autoCreateTime" json:"created_at"`
 }
 
-// Bind validates and processes incoming requests for the Treatment model.
 func (t *Treatment) Bind(r *http.Request) error {
-	if t.VisitID == 0 {
-		return errors.New("visit_id is required")
-	}
-	if t.Name == "" {
-		return errors.New("name is required")
-	}
-	if t.Dosage == "" {
-		return errors.New("dosage is required")
-	}
-	if t.Frequency == "" {
-		return errors.New("frequency is required")
+	if t.Description == "" {
+		return errors.New("description is required")
 	}
 	return nil
 }
 
-// Interface du repository pour Treatment
 type TreatmentRepository interface {
 	Create(treatment *Treatment) error
 	FindByID(id uint) (*Treatment, error)
-	FindByVisitID(visitID uint) ([]Treatment, error)
+	FindAll() ([]Treatment, error)
 	Update(treatment *Treatment) error
 	Delete(id uint) error
 }
 
-// Implémentation du repository
 type treatmentRepository struct {
 	db *gorm.DB
 }
 
-func NewVisitRepository(db *gorm.DB) VisitRepository {
-	return &visitRepository{db: db}
+func NewTreatmentRepository(db *gorm.DB) TreatmentRepository {
+	return &treatmentRepository{db: db}
 }
 
-func (r *visitRepository) Create(visit *Visit) error {
-	return r.db.Create(visit).Error
+func (r *treatmentRepository) Create(treatment *Treatment) error {
+	return r.db.Create(treatment).Error
 }
 
-func (r *visitRepository) FindByID(id uint) (*Visit, error) {
-	var visit Visit
-	err := r.db.Preload("Cat").First(&visit, id).Error
-	return &visit, err
+func (r *treatmentRepository) FindByID(id uint) (*Treatment, error) {
+	var treatment Treatment
+	err := r.db.First(&treatment, id).Error
+	return &treatment, err
 }
 
-func (r *visitRepository) FindAll() ([]Visit, error) {
-	var visits []Visit
-	err := r.db.Preload("Cat").Find(&visits).Error
-	return visits, err
+func (r *treatmentRepository) FindAll() ([]Treatment, error) {
+	var treatments []Treatment
+	err := r.db.Find(&treatments).Error
+	return treatments, err
 }
 
-func (r *visitRepository) FindByCatID(catID uint) ([]Visit, error) {
-	var visits []Visit
-	err := r.db.Where("cat_id = ?", catID).Find(&visits).Error
-	return visits, err
+func (r *treatmentRepository) Update(treatment *Treatment) error {
+	return r.db.Save(treatment).Error
 }
 
-func (r *visitRepository) Update(visit *Visit) error {
-	return r.db.Save(visit).Error
-}
-
-func (r *visitRepository) Delete(id uint) error {
-	return r.db.Delete(&Visit{}, id).Error
+func (r *treatmentRepository) Delete(id uint) error {
+	return r.db.Delete(&Treatment{}, id).Error
 }
